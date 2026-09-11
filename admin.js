@@ -2,6 +2,7 @@ const supabaseClient = supabase.createClient(window.SUPABASE_URL, window.SUPABAS
 
 const $ = (id) => document.getElementById(id);
 let questionMap = new Map();
+const FORMATIVE_PREFIX = '[تكويني التفتيش] ';
 
 async function ensureAdmin() {
   const { data: { session } } = await supabaseClient.auth.getSession();
@@ -23,7 +24,7 @@ async function loadDashboard() {
     $('dashboardError').textContent = 'تعذر تحميل النتائج.';
     throw error;
   }
-  const attempts = data || [];
+  const attempts = (data || []).filter(a => !String(a.trainee_name || '').startsWith(FORMATIVE_PREFIX));
   $('statAttempts').textContent = attempts.length;
   $('statPre').textContent = attempts.filter(a => a.assessment_type === 'قبلي').length;
   $('statPost').textContent = attempts.filter(a => a.assessment_type === 'بعدي').length;
