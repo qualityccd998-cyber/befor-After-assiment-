@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>لوحة المشرف - التقييم التكويني للتفتيش</title>
+  <link rel="stylesheet" href="../styles.css" />
+</head>
+<body>
+  <main class="container">
+    <header class="hero">
+      <h1>لوحة المشرف</h1>
+      <p>التقييم التكويني لمقرر الكشف والتفتيش وضبط المخالفات</p>
+      <a class="admin-link" href="index.html">العودة للتقييم</a>
+    </header>
+
+    <section id="loginCard" class="card">
+      <h2>تسجيل دخول المشرف</h2>
+      <label for="adminEmail">البريد الإلكتروني</label>
+      <input id="adminEmail" type="email" autocomplete="username" />
+      <label for="adminPassword">كلمة المرور</label>
+      <input id="adminPassword" type="password" autocomplete="current-password" />
+      <button id="loginBtn" class="primary">دخول</button>
+      <p id="loginError" class="error"></p>
+    </section>
+
+    <section id="dashboard" class="hidden">
+      <section class="stats-grid">
+        <div class="stat-card"><span>عدد المحاولات</span><strong id="statAttempts">0</strong></div>
+        <div class="stat-card"><span>المتوسط العام</span><strong id="statAverage">0%</strong></div>
+        <div class="stat-card"><span>أعلى نتيجة</span><strong id="statHighest">0%</strong></div>
+        <div class="stat-card"><span>آخر إرسال</span><strong id="statLatest">-</strong></div>
+      </section>
+
+      <section class="card">
+        <div class="toolbar">
+          <h2>نتائج التقييم التكويني</h2>
+          <div>
+            <button id="refreshBtn" class="secondary">تحديث</button>
+            <button id="logoutBtn" class="danger">تسجيل الخروج</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>الاسم</th><th>الدرجة</th><th>النسبة</th><th>وقت الإرسال</th><th>التفاصيل</th></tr></thead>
+            <tbody id="attemptRows"></tbody>
+          </table>
+        </div>
+        <p id="dashboardError" class="error"></p>
+      </section>
+    </section>
+  </main>
+
+  <dialog id="detailsDialog">
+    <div class="toolbar"><h3 id="detailsTitle">تفاصيل الإجابات</h3><button id="closeDetails" class="secondary">إغلاق</button></div>
+    <div id="detailsBody" class="review-list"></div>
+  </dialog>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../supabase-config.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>
