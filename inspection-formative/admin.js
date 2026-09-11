@@ -25,6 +25,7 @@ const questions = [
 {id:20,question_text:'في جداول تصنيف مخالفات كود البناء السعودي الواردة بالمقرر، أي المجموعات تقع ضمن الفئة الأعلى في الجدول؟',options:{A:'Group R-3 و Group R-4 فقط',B:'Group B فقط',C:'Group S-2 فقط',D:'Group U و Group H'}}
 ];
 const questionMap = new Map(questions.map(q=>[q.id,q]));
+const answerKey = {1:'B',2:'C',3:'A',4:'D',5:'C',6:'B',7:'D',8:'C',9:'B',10:'A',11:'D',12:'B',13:'C',14:'A',15:'D',16:'B',17:'C',18:'B',19:'A',20:'D'};
 
 function escapeHtml(s){return String(s??'').replace(/[&<>'\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','\"':'&quot;'}[c]));}
 function cleanName(name){return String(name||'').startsWith(PREFIX)?String(name).slice(PREFIX.length):String(name||'');}
@@ -55,7 +56,12 @@ async function showDetails(attemptId,name){
   const {data,error}=await supabaseClient.from('responses').select('*').eq('attempt_id',attemptId).order('question_id');
   if(error)return alert('تعذر تحميل التفاصيل');
   $('detailsTitle').textContent=`تفاصيل إجابات ${name||''}`;
-  $('detailsBody').innerHTML=(data||[]).map((r,i)=>{const q=questionMap.get(r.question_id);const selectedText=q?q.options[r.selected_option]:r.selected_option;const correctText=q?q.options[r.is_correct?r.selected_option:({'A':'C','B':'B','C':'A','D':'D'}[r.selected_option]||r.selected_option)]:'-';return `<div class="review-item ${r.is_correct?'correct':'incorrect'}"><strong>${i+1}. ${q?escapeHtml(q.question_text):`السؤال ${r.question_id}`}</strong><div>إجابة المتدرب: ${escapeHtml(selectedText||'-')}</div><div>الحالة: <span class="status">${r.is_correct?'✓ صحيحة':'✗ غير صحيحة'}</span></div></div>`;}).join('');
+  $('detailsBody').innerHTML=(data||[]).map((r,i)=>{
+    const q=questionMap.get(r.question_id);
+    const selectedText=q?q.options[r.selected_option]:r.selected_option;
+    const correctText=q?q.options[answerKey[r.question_id]]:'-';
+    return `<div class="review-item ${r.is_correct?'correct':'incorrect'}"><strong>${i+1}. ${q?escapeHtml(q.question_text):`السؤال ${r.question_id}`}</strong><div>إجابة المتدرب: ${escapeHtml(selectedText||'-')}</div><div>الإجابة الصحيحة: ${escapeHtml(correctText||'-')}</div><div class="status">${r.is_correct?'✓ صحيحة':'✗ غير صحيحة'}</div></div>`;
+  }).join('');
   $('detailsDialog').showModal();
 }
 
