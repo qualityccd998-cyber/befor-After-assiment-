@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>التقييم التكويني لمقرر متطلبات الوقاية والحماية من الحريق</title>
+  <link rel="stylesheet" href="../styles.css" />
+</head>
+<body>
+  <main class="container">
+    <header class="hero">
+      <h1>التقييم التكويني</h1>
+      <p>مقرر متطلبات الوقاية والحماية من الحريق</p>
+      <a class="admin-link" href="admin.html">دخول المشرف</a>
+    </header>
+
+    <section id="startCard" class="card">
+      <h2>بيانات المتدرب</h2>
+      <label>اسم المتدرب</label>
+      <input id="traineeName" type="text" autocomplete="name" placeholder="اكتب الاسم الكامل" />
+      <button id="startBtn" class="primary">بدء التقييم</button>
+      <p id="startError" class="error"></p>
+    </section>
+
+    <section id="quizCard" class="card hidden">
+      <div class="progress-row">
+        <span id="progressText"></span>
+        <progress id="progressBar" value="0" max="10"></progress>
+      </div>
+      <div id="questionWrap"></div>
+      <div class="actions">
+        <button id="prevBtn" class="secondary">السابق</button>
+        <button id="nextBtn" class="primary">التالي</button>
+      </div>
+    </section>
+
+    <section id="reviewCard" class="card hidden">
+      <h2>مراجعة الإجابات</h2>
+      <p id="reviewSummary"></p>
+      <div id="reviewList" class="review-list"></div>
+      <div class="actions">
+        <button id="backToQuizBtn" class="secondary">العودة للأسئلة</button>
+        <button id="submitBtn" class="danger">إرسال الإجابات</button>
+      </div>
+      <p id="submitError" class="error"></p>
+    </section>
+
+    <section id="resultCard" class="card hidden">
+      <h2>تم إرسال إجاباتك بنجاح</h2>
+      <div id="scoreBox" class="score-box"></div>
+      <p class="muted">تم تثبيت المحاولة ولا يمكن تعديلها بعد الإرسال.</p>
+      <h3>مراجعة الإجابات</h3>
+      <div id="resultList" class="review-list"></div>
+    </section>
+  </main>
+
+  <dialog id="confirmDialog">
+    <h3>تأكيد الإرسال</h3>
+    <p>هل أنت متأكد من إرسال جميع الإجابات؟ بعد التأكيد لن تتمكن من تعديلها.</p>
+    <div class="actions">
+      <button id="cancelSubmit" class="secondary">إلغاء</button>
+      <button id="confirmSubmit" class="danger">تأكيد الإرسال</button>
+    </div>
+  </dialog>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../supabase-config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
