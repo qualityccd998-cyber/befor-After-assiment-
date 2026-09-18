@@ -2,6 +2,8 @@ const supabaseClient = supabase.createClient(window.SUPABASE_URL, window.SUPABAS
 
 const $ = (id) => document.getElementById(id);
 let questionMap = new Map();
+let allAttempts = [];
+let currentFilter = 'all';
 const FORMATIVE_PREFIXES = ['[تكويني التفتيش] ', '[تكويني الوقاية] '];
 
 async function ensureAdmin() {
@@ -17,6 +19,63 @@ async function loadQuestionsForAdmin() {
   questionMap = new Map((data || []).map(q => [q.id, q]));
 }
 
+function updateStatistics(attempts) {
+  $('statAttempts').textContent = attempts.length;
+  $('statPre').textContent = attempts.filter(a => a.assessment_type === 'قبلي').length;
+  $('statPost').textContent = attempts.filter(a => a.assessment_type === 'بعدي').length;
+  const avg = attempts.length ? attempts.reduce((s, a) => s + Number(a.percentage || 0), 0) / attempts.length : 0;
+  $('statAverage').textContent = `${avg.toFixed(1)}%`;
+
+  $('filterAllCount').textContent = attempts.length;
+  $('filterPreCount').textContent = attempts.filter(a => a.assessment_type === 'قبلي').length;
+  $('filterPostCount').textContent = attempts.filter(a => a.assessment_type === 'بعدي').length;
+}
+
+function filteredAttempts() {
+  if (currentFilter === 'قبلي') return allAttempts.filter(a => a.assessment_type === 'قبلي');
+  if (currentFilter === 'بعدي') return allAttempts.filter(a => a.assessment_type === 'بعدي');
+  return allAttempts;
+}
+
+function updateFilterUi() {
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.filter === currentFilter);
+  });
+
+  const visible = filteredAttempts();
+  if (currentFilter === 'قبلي') {
+    $('resultsTitle').textContent = 'نتائج التقييم القبلي';
+    $('filterSummary').textContent = `تم فرز ${visible.length} نتيجة قبلية`;
+  } else if (currentFilter === 'بعدي') {
+    $('resultsTitle').textContent = 'نتائج التقييم البعدي';
+    $('filterSummary').textContent = `تم فرز ${visible.length} نتيجة بعدية`;
+  } else {
+    $('resultsTitle').textContent = 'جميع النتائج';
+    $('filterSummary').textContent = `عرض جميع النتائج: ${visible.length} محاولة`;
+  }
+}
+
+function renderAttemptRows() {
+  const attempts = filteredAttempts();
+  $('attemptRows').innerHTML = attempts.map(a => `
+    <tr>
+      <td>${escapeHtml(a.trainee_name)}</td>
+      <td><span class="type-badge ${a.assessment_type === 'قبلي' ? 'pre' : 'post'}">${a.assessment_type}</span></td>
+      <td>${a.score}/${a.total_questions}</td>
+      <td>${Number(a.percentage).toFixed(2)}%</td>
+      <td>${new Date(a.submitted_at).toLocaleString('ar-SA')}</td>
+      <td><button class="secondary small" data-attempt="${a.id}">عرض</button></td>
+    </tr>`).join('') || '<tr><td colspan="6">لا توجد نتائج ضمن هذا الفرز.</td></tr>';
+
+  document.querySelectorAll('[data-attempt]').forEach(btn => btn.addEventListener('click', () => showDetails(btn.dataset.attempt)));
+  updateFilterUi();
+}
+
+function setFilter(filter) {
+  currentFilter = filter;
+  renderAttemptRows();
+}
+
 async function loadDashboard() {
   $('dashboardError').textContent = '';
   const { data, error } = await supabaseClient.from('attempts').select('*').order('submitted_at', { ascending: false });
@@ -24,23 +83,10 @@ async function loadDashboard() {
     $('dashboardError').textContent = 'تعذر تحميل النتائج.';
     throw error;
   }
-  const attempts = (data || []).filter(a => !FORMATIVE_PREFIXES.some(prefix => String(a.trainee_name || '').startsWith(prefix)));
-  $('statAttempts').textContent = attempts.length;
-  $('statPre').textContent = attempts.filter(a => a.assessment_type === 'قبلي').length;
-  $('statPost').textContent = attempts.filter(a => a.assessment_type === 'بعدي').length;
-  const avg = attempts.length ? attempts.reduce((s, a) => s + Number(a.percentage || 0), 0) / attempts.length : 0;
-  $('statAverage').textContent = `${avg.toFixed(1)}%`;
-  $('attemptRows').innerHTML = attempts.map(a => `
-    <tr>
-      <td>${escapeHtml(a.trainee_name)}</td>
-      <td>${a.assessment_type}</td>
-      <td>${a.score}/${a.total_questions}</td>
-      <td>${Number(a.percentage).toFixed(2)}%</td>
-      <td>${new Date(a.submitted_at).toLocaleString('ar-SA')}</td>
-      <td><button class="secondary small" data-attempt="${a.id}">عرض</button></td>
-    </tr>`).join('') || '<tr><td colspan="6">لا توجد نتائج حتى الآن.</td></tr>';
 
-  document.querySelectorAll('[data-attempt]').forEach(btn => btn.addEventListener('click', () => showDetails(btn.dataset.attempt)));
+  allAttempts = (data || []).filter(a => !FORMATIVE_PREFIXES.some(prefix => String(a.trainee_name || '').startsWith(prefix)));
+  updateStatistics(allAttempts);
+  renderAttemptRows();
 }
 
 async function showDetails(attemptId) {
@@ -96,6 +142,7 @@ $('loginBtn').addEventListener('click', async () => {
   showAppState();
 });
 
+document.querySelectorAll('.filter-btn').forEach(btn => btn.addEventListener('click', () => setFilter(btn.dataset.filter)));
 $('refreshBtn').addEventListener('click', loadDashboard);
 $('logoutBtn').addEventListener('click', async () => { await supabaseClient.auth.signOut(); showAppState(); });
 $('closeDetails').addEventListener('click', () => $('detailsDialog').close());
