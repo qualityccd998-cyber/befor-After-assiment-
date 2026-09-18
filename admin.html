@@ -34,12 +34,34 @@
 
       <section class="card">
         <div class="toolbar">
-          <h2>النتائج</h2>
+          <div>
+            <h2 id="resultsTitle">النتائج</h2>
+            <p id="filterSummary" class="muted results-summary">عرض جميع النتائج</p>
+          </div>
           <div>
             <button id="refreshBtn" class="secondary">تحديث</button>
             <button id="logoutBtn" class="danger">تسجيل الخروج</button>
           </div>
         </div>
+
+        <div class="result-filters" role="group" aria-label="فرز نتائج التقييم">
+          <button id="filterAllBtn" class="filter-btn active" data-filter="all">
+            <span class="filter-icon">▦</span>
+            <span>جميع النتائج</span>
+            <strong id="filterAllCount">0</strong>
+          </button>
+          <button id="filterPreBtn" class="filter-btn" data-filter="قبلي">
+            <span class="filter-icon">◀</span>
+            <span>نتائج القبلي</span>
+            <strong id="filterPreCount">0</strong>
+          </button>
+          <button id="filterPostBtn" class="filter-btn" data-filter="بعدي">
+            <span class="filter-icon">▶</span>
+            <span>نتائج البعدي</span>
+            <strong id="filterPostCount">0</strong>
+          </button>
+        </div>
+
         <div class="table-wrap">
           <table>
             <thead><tr><th>الاسم</th><th>النوع</th><th>الدرجة</th><th>النسبة</th><th>وقت الإرسال</th><th>التفاصيل</th></tr></thead>
