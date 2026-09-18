@@ -19,16 +19,33 @@ async function loadQuestionsForAdmin() {
   questionMap = new Map((data || []).map(q => [q.id, q]));
 }
 
+function calculateAverage(attempts) {
+  return attempts.length
+    ? attempts.reduce((sum, a) => sum + Number(a.percentage || 0), 0) / attempts.length
+    : 0;
+}
+
 function updateStatistics(attempts) {
   $('statAttempts').textContent = attempts.length;
   $('statPre').textContent = attempts.filter(a => a.assessment_type === 'قبلي').length;
   $('statPost').textContent = attempts.filter(a => a.assessment_type === 'بعدي').length;
-  const avg = attempts.length ? attempts.reduce((s, a) => s + Number(a.percentage || 0), 0) / attempts.length : 0;
-  $('statAverage').textContent = `${avg.toFixed(1)}%`;
 
   $('filterAllCount').textContent = attempts.length;
   $('filterPreCount').textContent = attempts.filter(a => a.assessment_type === 'قبلي').length;
   $('filterPostCount').textContent = attempts.filter(a => a.assessment_type === 'بعدي').length;
+}
+
+function updateAverageCard(attempts) {
+  const avg = calculateAverage(attempts);
+  $('statAverage').textContent = `${avg.toFixed(1)}%`;
+
+  if (currentFilter === 'قبلي') {
+    $('statAverageLabel').textContent = 'متوسط التقييم القبلي';
+  } else if (currentFilter === 'بعدي') {
+    $('statAverageLabel').textContent = 'متوسط التقييم البعدي';
+  } else {
+    $('statAverageLabel').textContent = 'المتوسط العام';
+  }
 }
 
 function filteredAttempts() {
@@ -43,6 +60,8 @@ function updateFilterUi() {
   });
 
   const visible = filteredAttempts();
+  updateAverageCard(visible);
+
   if (currentFilter === 'قبلي') {
     $('resultsTitle').textContent = 'نتائج التقييم القبلي';
     $('filterSummary').textContent = `تم فرز ${visible.length} نتيجة قبلية`;
