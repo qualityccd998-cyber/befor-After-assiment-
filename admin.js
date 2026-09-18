@@ -92,6 +92,9 @@ function renderAttemptRows() {
 
 function setFilter(filter) {
   currentFilter = filter;
+
+  const visible = filteredAttempts();
+  updateAverageCard(visible);
   renderAttemptRows();
 }
 
@@ -105,6 +108,7 @@ async function loadDashboard() {
 
   allAttempts = (data || []).filter(a => !FORMATIVE_PREFIXES.some(prefix => String(a.trainee_name || '').startsWith(prefix)));
   updateStatistics(allAttempts);
+  updateAverageCard(filteredAttempts());
   renderAttemptRows();
 }
 
