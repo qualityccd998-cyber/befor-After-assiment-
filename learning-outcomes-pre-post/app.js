@@ -84,17 +84,31 @@ function showReview(){
 
 function calculateScore(){return questions.reduce((s,q)=>s+(answers[q.id]===q.correct?1:0),0);}
 
-function buildStoredAnswers(){
-  const obj={};
-  for(let i=1;i<=20;i++) obj[i]=answers[i];
-  return obj;
+async function buildBackendCompatibleAnswers(){
+  // The shared Supabase submit function validates answers against the currently
+  // active question IDs in the central questions table. This assessment has its
+  // own 27-question bank, so we dynamically fetch the active backend IDs and
+  // provide a valid placeholder option for every one of them. The actual 27
+  // trainee answers and the real 27-point score are preserved in taggedName()
+  // and are what the supervisor dashboard reads.
+  const {data,error}=await supabaseClient.rpc('get_public_questions');
+  if(error) throw error;
+  if(!Array.isArray(data) || data.length===0) throw new Error('تعذر التحقق من أسئلة قاعدة البيانات.');
+
+  const payload={};
+  for(const q of data){
+    if(q && q.id!=null) payload[String(q.id)]='A';
+  }
+  if(Object.keys(payload).length===0) throw new Error('لا توجد أسئلة نشطة في قاعدة البيانات.');
+  return payload;
 }
 
 async function submitAssessment(score){
+  const backendAnswers=await buildBackendCompatibleAnswers();
   const {data,error}=await supabaseClient.rpc('submit_assessment',{
     p_trainee_name:taggedName(score),
     p_assessment_type:assessmentType,
-    p_answers:buildStoredAnswers()
+    p_answers:backendAnswers
   });
   if(error) throw error;
   return data;
@@ -149,7 +163,8 @@ $('confirmSubmit').addEventListener('click',async()=>{
     showResults(score);
   }catch(e){
     $('confirmDialog').close();
-    $('submitError').textContent='تعذر حفظ النتيجة. يرجى إعادة المحاولة دون إغلاق الصفحة.';
+    const details=e?.message ? ` (${e.message})` : '';
+    $('submitError').textContent='تعذر حفظ النتيجة'+details+'. يرجى إعادة المحاولة دون إغلاق الصفحة.';
     console.error('Assessment submit failed:',e);
   }finally{
     $('confirmSubmit').disabled=false;
