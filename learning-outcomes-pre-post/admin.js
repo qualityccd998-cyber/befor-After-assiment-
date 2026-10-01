@@ -43,6 +43,7 @@ const questions = [
 const questionMap=new Map(questions.map(q=>[q.id,q]));
 let sessions=[];
 let currentFilter='all';
+let pendingDeleteToken=null;
 
 function escapeHtml(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
 function parseTagged(name){
@@ -98,8 +99,10 @@ function renderRows(){
     <td>${s.percentage.toFixed(1)}%</td>
     <td>${new Date(s.submitted_at).toLocaleString('ar-SA')}</td>
     <td><button class="secondary small" data-token="${s.token}">عرض</button></td>
-  </tr>`).join('')||'<tr><td colspan="6">لا توجد نتائج ضمن هذا الفرز.</td></tr>';
+    <td><button class="danger small" data-delete-token="${s.token}" data-delete-name="${escapeHtml(s.name)}">حذف</button></td>
+  </tr>`).join('')||'<tr><td colspan="7">لا توجد نتائج ضمن هذا الفرز.</td></tr>';
   document.querySelectorAll('[data-token]').forEach(b=>b.addEventListener('click',()=>showDetails(b.dataset.token)));
+  document.querySelectorAll('[data-delete-token]').forEach(b=>b.addEventListener('click',()=>openDeleteDialog(b.dataset.deleteToken,b.dataset.deleteName)));
   updateFilterUi();
 }
 
@@ -144,6 +147,31 @@ async function showDetails(token){
   }).join('');
   $('detailsDialog').showModal();
 }
+function openDeleteDialog(token,name){
+  pendingDeleteToken=token;
+  $('deleteError').textContent='';
+  $('deleteMessage').textContent=`هل تريد حذف نتيجة المتدرب: ${name}؟`;
+  $('deleteDialog').showModal();
+}
+
+async function deleteAttempt(){
+  if(!pendingDeleteToken)return;
+  $('confirmDelete').disabled=true;
+  $('deleteError').textContent='';
+  try{
+    const {data,error}=await supabaseClient.rpc('delete_learning_outcomes_attempt',{p_token:pendingDeleteToken});
+    if(error)throw error;
+    pendingDeleteToken=null;
+    $('deleteDialog').close();
+    await loadDashboard();
+  }catch(e){
+    console.error(e);
+    $('deleteError').textContent='تعذر حذف النتيجة. تحقق من صلاحية المشرف ثم أعد المحاولة.';
+  }finally{
+    $('confirmDelete').disabled=false;
+  }
+}
+
 function setFilter(f){currentFilter=f;renderRows();}
 
 async function showAppState(){
@@ -167,6 +195,8 @@ document.querySelectorAll('.filter-btn').forEach(b=>b.addEventListener('click',(
 $('refreshBtn').addEventListener('click',loadDashboard);
 $('logoutBtn').addEventListener('click',async()=>{await supabaseClient.auth.signOut();showAppState();});
 $('closeDetails').addEventListener('click',()=>$('detailsDialog').close());
+$('cancelDelete').addEventListener('click',()=>{pendingDeleteToken=null;$('deleteDialog').close();});
+$('confirmDelete').addEventListener('click',deleteAttempt);
 supabaseClient.auth.onAuthStateChange(()=>setTimeout(showAppState,0));
 showAppState();
 setInterval(()=>{if(!$('dashboard').classList.contains('hidden'))loadDashboard();},15000);
