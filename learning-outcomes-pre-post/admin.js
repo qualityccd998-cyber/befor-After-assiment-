@@ -47,8 +47,12 @@ let pendingDeleteToken=null;
 
 function escapeHtml(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
 function parseTagged(name){
-  const m=String(name||'').match(/^\[LO27\|([^|]+)\|([AB])\|(\d+)\]\s*(.*)$/);
-  return m?{token:m[1],part:m[2],score:Number(m[3]),name:m[4]}:null;
+  const value=String(name||'');
+  const v2=value.match(/^\[LO27\|([^|]+)\|V2\|(\d+)\|([A-D]{27})\]\s*(.*)$/);
+  if(v2)return {version:'v2',token:v2[1],score:Number(v2[2]),answers:v2[3],name:v2[4]};
+  const v1=value.match(/^\[LO27\|([^|]+)\|([AB])\|(\d+)\]\s*(.*)$/);
+  if(v1)return {version:'v1',token:v1[1],part:v1[2],score:Number(v1[3]),name:v1[4]};
+  return null;
 }
 async function ensureAdmin(){
   const {data:{session}}=await supabaseClient.auth.getSession();
@@ -111,16 +115,38 @@ async function loadDashboard(){
   const {data,error}=await supabaseClient.from('attempts').select('*').order('submitted_at',{ascending:false});
   if(error){$('dashboardError').textContent='تعذر تحميل النتائج.';throw error;}
   const groups=new Map();
+  const v2Sessions=[];
   for(const a of (data||[])){
     const t=parseTagged(a.trainee_name);
     if(!t)continue;
-    if(!groups.has(t.token))groups.set(t.token,{token:t.token,name:t.name,score:t.score,assessment_type:a.assessment_type,parts:{},submitted_at:a.submitted_at});
+
+    if(t.version==='v2'){
+      v2Sessions.push({
+        version:'v2',
+        token:t.token,
+        name:t.name,
+        score:t.score,
+        answers:t.answers,
+        assessment_type:a.assessment_type,
+        attempt:a,
+        submitted_at:a.submitted_at,
+        percentage:t.score/27*100
+      });
+      continue;
+    }
+
+    if(!groups.has(t.token))groups.set(t.token,{version:'v1',token:t.token,name:t.name,score:t.score,assessment_type:a.assessment_type,parts:{},submitted_at:a.submitted_at});
     const g=groups.get(t.token);
     g.parts[t.part]=a;
     g.score=t.score;
     if(new Date(a.submitted_at)>new Date(g.submitted_at))g.submitted_at=a.submitted_at;
   }
-  sessions=[...groups.values()].filter(g=>g.parts.A&&g.parts.B).map(g=>({...g,percentage:g.score/27*100})).sort((a,b)=>new Date(b.submitted_at)-new Date(a.submitted_at));
+
+  const oldSessions=[...groups.values()]
+    .filter(g=>g.parts.A&&g.parts.B)
+    .map(g=>({...g,percentage:g.score/27*100}));
+
+  sessions=[...v2Sessions,...oldSessions].sort((a,b)=>new Date(b.submitted_at)-new Date(a.submitted_at));
   updateStats();
   renderRows();
 }
@@ -128,14 +154,23 @@ async function loadDashboard(){
 async function showDetails(token){
   const s=sessions.find(x=>x.token===token);
   if(!s)return;
-  const ids=[s.parts.A.id,s.parts.B.id];
-  const {data,error}=await supabaseClient.from('responses').select('*').in('attempt_id',ids).order('question_id');
-  if(error)return alert('تعذر تحميل التفاصيل');
-  const partA=new Map((data||[]).filter(r=>r.attempt_id===s.parts.A.id).map(r=>[r.question_id,r.selected_option]));
-  const partB=new Map((data||[]).filter(r=>r.attempt_id===s.parts.B.id).map(r=>[r.question_id,r.selected_option]));
+
+  let selectedForQuestion;
+
+  if(s.version==='v2'){
+    selectedForQuestion=(q)=>s.answers[q.id-1]||'';
+  }else{
+    const ids=[s.parts.A.id,s.parts.B.id];
+    const {data,error}=await supabaseClient.from('responses').select('*').in('attempt_id',ids).order('question_id');
+    if(error)return alert('تعذر تحميل التفاصيل');
+    const partA=new Map((data||[]).filter(r=>r.attempt_id===s.parts.A.id).map(r=>[r.question_id,r.selected_option]));
+    const partB=new Map((data||[]).filter(r=>r.attempt_id===s.parts.B.id).map(r=>[r.question_id,r.selected_option]));
+    selectedForQuestion=(q)=>q.id<=20?partA.get(q.id):partB.get(q.id-20);
+  }
+
   $('detailsTitle').textContent=`تفاصيل ${s.name} - ${s.assessment_type}`;
   $('detailsBody').innerHTML=questions.map((q,i)=>{
-    const selected=q.id<=20?partA.get(q.id):partB.get(q.id-20);
+    const selected=selectedForQuestion(q);
     const ok=selected===q.correct;
     return `<div class="review-item ${ok?'correct':'incorrect'}">
       <div class="question-meta"><span>${escapeHtml(q.course)}</span><span>${escapeHtml(q.outcome)}</span></div>
