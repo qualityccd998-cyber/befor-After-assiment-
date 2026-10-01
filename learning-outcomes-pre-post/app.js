@@ -46,11 +46,13 @@ let currentIndex=0;
 let traineeName='';
 let assessmentType='';
 let sessionToken='';
-let partASubmitted=false;
 
 function escapeHtml(s){return String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
 function makeToken(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8);}
-function taggedName(part,score){return `[${TAG}|${sessionToken}|${part}|${score}] ${traineeName}`;}
+function taggedName(score){
+  const encodedAnswers=questions.map(q=>answers[q.id]||'').join('');
+  return `[${TAG}|${sessionToken}|V2|${score}|${encodedAnswers}] ${traineeName}`;
+}
 
 function renderQuestion(){
   const q=questions[currentIndex];
@@ -82,23 +84,17 @@ function showReview(){
 
 function calculateScore(){return questions.reduce((s,q)=>s+(answers[q.id]===q.correct?1:0),0);}
 
-function buildPartA(){
+function buildStoredAnswers(){
   const obj={};
   for(let i=1;i<=20;i++) obj[i]=answers[i];
   return obj;
 }
-function buildPartB(){
-  const obj={};
-  for(let i=1;i<=7;i++) obj[i]=answers[20+i];
-  for(let i=8;i<=20;i++) obj[i]='A';
-  return obj;
-}
 
-async function submitPart(part,payload,score){
+async function submitAssessment(score){
   const {data,error}=await supabaseClient.rpc('submit_assessment',{
-    p_trainee_name:taggedName(part,score),
+    p_trainee_name:taggedName(score),
     p_assessment_type:assessmentType,
-    p_answers:payload
+    p_answers:buildStoredAnswers()
   });
   if(error) throw error;
   return data;
@@ -148,17 +144,13 @@ $('confirmSubmit').addEventListener('click',async()=>{
   $('submitError').textContent='';
   const score=calculateScore();
   try{
-    if(!partASubmitted){
-      await submitPart('A',buildPartA(),score);
-      partASubmitted=true;
-    }
-    await submitPart('B',buildPartB(),score);
+    await submitAssessment(score);
     $('confirmDialog').close();
     showResults(score);
   }catch(e){
     $('confirmDialog').close();
     $('submitError').textContent='تعذر حفظ النتيجة. يرجى إعادة المحاولة دون إغلاق الصفحة.';
-    console.error(e);
+    console.error('Assessment submit failed:',e);
   }finally{
     $('confirmSubmit').disabled=false;
   }
