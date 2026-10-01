@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>لوحة المشرف - الاختبار القبلي والبعدي</title>
-  <link rel="stylesheet" href="../styles.css?v=20261001-1" />
+  <link rel="stylesheet" href="../styles.css?v=20261001-2" />
 </head>
 <body>
   <main class="container">
@@ -52,7 +52,7 @@
 
         <div class="table-wrap">
           <table>
-            <thead><tr><th>الاسم</th><th>النوع</th><th>الدرجة</th><th>النسبة</th><th>وقت الإرسال</th><th>التفاصيل</th></tr></thead>
+            <thead><tr><th>الاسم</th><th>النوع</th><th>الدرجة</th><th>النسبة</th><th>وقت الإرسال</th><th>التفاصيل</th><th>حذف</th></tr></thead>
             <tbody id="attemptRows"></tbody>
           </table>
         </div>
@@ -66,8 +66,19 @@
     <div id="detailsBody" class="review-list"></div>
   </dialog>
 
+  <dialog id="deleteDialog">
+    <h3>تأكيد حذف نتيجة المتدرب</h3>
+    <p id="deleteMessage"></p>
+    <p class="error">سيتم حذف نتيجة الاختبار وإجاباتها نهائيًا، ولا يمكن التراجع عن هذا الإجراء.</p>
+    <div class="actions">
+      <button id="cancelDelete" class="secondary">إلغاء</button>
+      <button id="confirmDelete" class="danger">تأكيد الحذف</button>
+    </div>
+    <p id="deleteError" class="error"></p>
+  </dialog>
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../supabase-config.js?v=20261001-1"></script>
-  <script src="admin.js?v=20261001-1"></script>
+  <script src="admin.js?v=20261001-2"></script>
 </body>
 </html>
